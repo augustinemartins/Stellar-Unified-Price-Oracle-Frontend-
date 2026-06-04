@@ -1,18 +1,6 @@
+import { memo } from 'react'
 import type { PriceData } from '../types'
-
-function formatPrice(price: number): string {
-  if (price >= 1000) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  if (price >= 1) return price.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
-  return price.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 8 })
-}
-
-function timeAgo(ts: number): string {
-  const sec = Math.floor((Date.now() - ts) / 1000)
-  if (sec < 60) return `${sec}s ago`
-  const min = Math.floor(sec / 60)
-  if (min < 60) return `${min}m ago`
-  return `${Math.floor(min / 60)}h ago`
-}
+import { formatPrice, timeAgo } from '../utils/format'
 
 const SOURCE_COLORS: Record<string, string> = {
   chainlink: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -27,17 +15,18 @@ interface PriceCardProps {
   isLive?: boolean
 }
 
-export function PriceCard({ price, onClick, isLive }: PriceCardProps) {
+export const PriceCard = memo(function PriceCard({ price, onClick, isLive }: PriceCardProps) {
   const confidencePct = (price.confidence * 100).toFixed(1)
 
   return (
     <button
       onClick={onClick}
       className="w-full text-left bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-700 hover:bg-gray-900/80 transition-all shadow-lg shadow-black/20"
+      aria-label={`View details for ${price.assetPair}`}
     >
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-gray-100">{price.assetPair}</h3>
-        {isLive && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
+        {isLive && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" role="status" aria-label="Live data" />}
       </div>
 
       <div className="text-3xl font-bold text-white mb-3 font-mono tracking-tight">
@@ -61,4 +50,4 @@ export function PriceCard({ price, onClick, isLive }: PriceCardProps) {
       </div>
     </button>
   )
-}
+})

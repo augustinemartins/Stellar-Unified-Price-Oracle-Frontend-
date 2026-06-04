@@ -1,0 +1,31 @@
+import { describe, it, expect, afterEach } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { SourceHealthBadge } from './SourceHealthBadge'
+
+afterEach(cleanup)
+
+describe('SourceHealthBadge', () => {
+  it('renders known sources with labels', () => {
+    render(<SourceHealthBadge sources={['chainlink', 'redstone']} />)
+    expect(screen.getAllByText('Chainlink').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Redstone').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('renders "No sources" when empty', () => {
+    render(<SourceHealthBadge sources={[]} />)
+    expect(screen.getByText('No sources')).toBeInTheDocument()
+  })
+
+  it('handles unknown sources gracefully', () => {
+    render(<SourceHealthBadge sources={['unknown_source']} />)
+    expect(screen.queryByText('unknown_source')).not.toBeInTheDocument()
+  })
+
+  it('renders multiple sources', () => {
+    render(<SourceHealthBadge sources={['chainlink', 'redstone', 'band', 'reflector']} />)
+    expect(screen.getAllByText('Chainlink')).toHaveLength(1)
+    expect(screen.getAllByText('Redstone')).toHaveLength(1)
+    expect(screen.getAllByText('Band')).toHaveLength(1)
+    expect(screen.getAllByText('Reflector')).toHaveLength(1)
+  })
+})

@@ -1,0 +1,15 @@
+import { describe, it, expect } from 'vitest'
+import { render } from '@testing-library/react'
+import { PriceCardSkeleton } from './PriceCardSkeleton'
+
+describe('PriceCardSkeleton', () => {
+  it('renders without crashing', () => {
+    const { container } = render(<PriceCardSkeleton />)
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
+  })
+
+  it('is hidden from accessibility tree', () => {
+    const { container } = render(<PriceCardSkeleton />)
+    expect(container.querySelector('[aria-hidden="true"]')).toBeInTheDocument()
+  })
+})

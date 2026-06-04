@@ -1,21 +1,42 @@
+import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePrices } from '../hooks/usePrices'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { PriceCard } from '../components/PriceCard'
+import { PriceCardSkeleton } from '../components/PriceCardSkeleton'
 import { ConnectionBadge } from '../components/ConnectionBadge'
+import { NetworkStatusBanner } from '../components/NetworkStatusBanner'
+
+function mergePrices(
+  restPrices: { assetPair: string; price: number; timestamp: number; confidence: number; sources: string[] }[],
+  livePrices: Map<string, { assetPair: string; price: number; timestamp: number; confidence: number; sources: string[] }>,
+) {
+  return restPrices.map((p) => {
+    const live = livePrices.get(p.assetPair)
+    if (live && live.timestamp >= p.timestamp) {
+      return { ...p, ...live }
+    }
+    return p
+  })
+}
 
 export function Dashboard() {
   const { prices, loading, error } = usePrices()
   const { livePrices, status } = useWebSocket(prices.map((p) => p.assetPair))
   const navigate = useNavigate()
 
-  const merged = prices.map((p) => ({
-    ...p,
-    ...(livePrices.get(p.assetPair) ?? {}),
-  }))
+  const merged = mergePrices(prices, livePrices)
+
+  const handleCardClick = useCallback(
+    (pair: string) => navigate(`/price/${encodeURIComponent(pair)}`),
+    [navigate],
+  )
+
+  const SKELETON_COUNT = 8
 
   return (
     <div>
+      <NetworkStatusBanner />
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Price Oracle Dashboard</h1>
@@ -27,27 +48,29 @@ export function Dashboard() {
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-900/30 border border-red-800 rounded-xl text-sm text-red-400">
+        <div className="mb-6 p-4 bg-red-900/30 border border-red-800 rounded-xl text-sm text-red-400" role="alert">
           {error}
         </div>
       )}
 
-      {loading && prices.length === 0 && (
-        <div className="flex items-center justify-center py-32">
-          <div className="animate-spin w-10 h-10 border-2 border-cyan-400 border-t-transparent rounded-full" />
+      {loading && prices.length === 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" aria-label="Loading price cards">
+          {Array.from({ length: SKELETON_COUNT }, (_, i) => (
+            <PriceCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" role="list" aria-label="Price feeds">
+          {merged.map((p) => (
+            <PriceCard
+              key={p.assetPair}
+              price={p}
+              isLive={livePrices.has(p.assetPair)}
+              onClick={() => handleCardClick(p.assetPair)}
+            />
+          ))}
         </div>
       )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {merged.map((p) => (
-          <PriceCard
-            key={p.assetPair}
-            price={p}
-            isLive={livePrices.has(p.assetPair)}
-            onClick={() => navigate(`/price/${encodeURIComponent(p.assetPair)}`)}
-          />
-        ))}
-      </div>
 
       {!loading && merged.length === 0 && (
         <div className="text-center py-32 text-gray-500">

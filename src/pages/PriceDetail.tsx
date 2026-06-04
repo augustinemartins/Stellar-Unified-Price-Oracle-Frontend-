@@ -6,22 +6,7 @@ import { usePrices } from '../hooks/usePrices'
 import { PriceChart } from '../components/PriceChart'
 import { SourceHealthBadge } from '../components/SourceHealthBadge'
 import { ConnectionBadge } from '../components/ConnectionBadge'
-
-function formatPrice(price: number): string {
-  if (price >= 1000) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  if (price >= 1) return price.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
-  return price.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 8 })
-}
-
-function formatTimestamp(ts: number): string {
-  return new Date(ts).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
-}
+import { formatPrice, formatTimestamp } from '../utils/format'
 
 export function PriceDetail() {
   const { pair } = useParams<{ pair: string }>()
@@ -49,9 +34,10 @@ export function PriceDetail() {
     <div>
       <button
         onClick={() => navigate('/')}
-        className="mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1"
+        className="mb-6 text-sm text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1 cursor-pointer"
+        type="button"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
         Back to Dashboard
@@ -85,7 +71,7 @@ export function PriceDetail() {
 
           <div>
             <p className="text-xs text-gray-500 mb-2">Oracle Sources</p>
-            <SourceHealthBadge sources={priceData.sources as any} />
+            <SourceHealthBadge sources={priceData.sources} />
           </div>
         </div>
       )}
@@ -93,7 +79,7 @@ export function PriceDetail() {
       {!priceData && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8 flex items-center justify-center text-gray-500">
           {historyLoading ? (
-            <div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full" />
+            <div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full" role="status" aria-label="Loading" />
           ) : (
             <p>No price data for {decodedPair}</p>
           )}

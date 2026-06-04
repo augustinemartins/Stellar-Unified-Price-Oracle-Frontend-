@@ -1,6 +1,4 @@
-import type { SourceName } from '../types'
-
-const SOURCE_INFO: Record<SourceName, { label: string; color: string }> = {
+const SOURCE_INFO: Record<string, { label: string; color: string }> = {
   chainlink: { label: 'Chainlink', color: 'bg-blue-500' },
   redstone: { label: 'Redstone', color: 'bg-red-500' },
   band: { label: 'Band', color: 'bg-purple-500' },
@@ -8,7 +6,7 @@ const SOURCE_INFO: Record<SourceName, { label: string; color: string }> = {
 }
 
 interface SourceHealthProps {
-  sources: SourceName[]
+  sources: readonly string[]
 }
 
 export function SourceHealthBadge({ sources }: SourceHealthProps) {
@@ -24,7 +22,7 @@ export function SourceHealthBadge({ sources }: SourceHealthProps) {
         return (
           <span
             key={src}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border border-gray-700 text-gray-300 bg-gray-800`}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border border-gray-700 text-gray-300 bg-gray-800"
           >
             <span className={`w-1.5 h-1.5 rounded-full ${info.color}`} />
             {info.label}

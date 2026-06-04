@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import {
   AreaChart,
   Area,
@@ -8,6 +9,7 @@ import {
   CartesianGrid,
 } from 'recharts'
 import type { PriceHistoryEntry } from '../types'
+import { formatChartTime, formatPriceShort } from '../utils/format'
 
 interface PriceChartProps {
   data: PriceHistoryEntry[]
@@ -15,21 +17,10 @@ interface PriceChartProps {
   loading?: boolean
 }
 
-function formatTimestamp(ts: number): string {
-  const d = new Date(ts)
-  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-}
-
-function formatPrice(val: number): string {
-  if (val >= 1000) return val.toLocaleString('en-US', { minimumFractionDigits: 2 })
-  if (val >= 1) return val.toLocaleString('en-US', { minimumFractionDigits: 4 })
-  return val.toLocaleString('en-US', { minimumFractionDigits: 6 })
-}
-
-export function PriceChart({ data, pair, loading }: PriceChartProps) {
+export const PriceChart = memo(function PriceChart({ data, pair, loading }: PriceChartProps) {
   if (loading) {
     return (
-      <div className="h-80 bg-gray-900/50 border border-gray-800 rounded-xl flex items-center justify-center">
+      <div className="h-80 bg-gray-900/50 border border-gray-800 rounded-xl flex items-center justify-center" role="status" aria-label="Loading chart">
         <div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full" />
       </div>
     )
@@ -46,7 +37,7 @@ export function PriceChart({ data, pair, loading }: PriceChartProps) {
   const chartData = data
     .slice()
     .reverse()
-    .map((d) => ({ ...d, time: formatTimestamp(d.timestamp) }))
+    .map((d) => ({ ...d, time: formatChartTime(d.timestamp) }))
 
   const prices = chartData.map((d) => d.price)
   const minP = Math.min(...prices)
@@ -77,7 +68,7 @@ export function PriceChart({ data, pair, loading }: PriceChartProps) {
               tick={{ fill: '#6b7280', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={formatPrice}
+              tickFormatter={formatPriceShort}
               width={80}
             />
             <Tooltip
@@ -88,7 +79,7 @@ export function PriceChart({ data, pair, loading }: PriceChartProps) {
                 fontSize: '13px',
               }}
               labelStyle={{ color: '#9ca3af' }}
-              formatter={(value: number) => [`$${formatPrice(value)}`, pair]}
+              formatter={(value: number) => [`$${formatPriceShort(value)}`, pair]}
               labelFormatter={(label) => `Time: ${label}`}
             />
             <Area
@@ -105,4 +96,4 @@ export function PriceChart({ data, pair, loading }: PriceChartProps) {
       </div>
     </div>
   )
-}
+})
