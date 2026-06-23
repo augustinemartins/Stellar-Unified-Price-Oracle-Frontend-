@@ -126,6 +126,48 @@ test.describe('Dashboard', () => {
     expect(await hasValidLabel()).toBe(true)
   })
 
+  test('filters price cards by search query', async ({ page }) => {
+    await setupMockApi(page)
+    await page.goto('/')
+
+    const searchInput = page.getByPlaceholder('Search by asset pair...')
+    await expect(searchInput).toBeVisible()
+
+    const cards = page.getByRole('button', { name: /View details for/ })
+    await expect(cards).toHaveCount(4)
+
+    await searchInput.fill('btc')
+    await expect(cards).toHaveCount(1)
+    await expect(page.getByText('BTC/USD')).toBeVisible()
+    await expect(page.getByText('ETH/USD')).not.toBeVisible()
+
+    await searchInput.fill('')
+    await expect(cards).toHaveCount(4)
+  })
+
+  test('shows no results message when search matches nothing', async ({ page }) => {
+    await setupMockApi(page)
+    await page.goto('/')
+
+    const searchInput = page.getByPlaceholder('Search by asset pair...')
+    await searchInput.fill('zzz')
+
+    await expect(page.getByText(/No results for/)).toBeVisible()
+    await expect(page.getByRole('button', { name: /View details for/ })).toHaveCount(0)
+  })
+
+  test('clears search and restores all cards', async ({ page }) => {
+    await setupMockApi(page)
+    await page.goto('/')
+
+    const searchInput = page.getByPlaceholder('Search by asset pair...')
+    await searchInput.fill('eth')
+    await expect(page.getByRole('button', { name: /View details for/ })).toHaveCount(1)
+
+    await searchInput.fill('')
+    await expect(page.getByRole('button', { name: /View details for/ })).toHaveCount(4)
+  })
+
   test('shows connection badge text', async ({ page }) => {
     await setupMockApi(page)
     await page.goto('/')

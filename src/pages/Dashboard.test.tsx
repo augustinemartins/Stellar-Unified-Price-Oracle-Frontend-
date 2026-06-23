@@ -165,6 +165,103 @@ describe('Dashboard', () => {
     })
   })
 
+  it('shows search input when prices are loaded', async () => {
+    const { usePriceContext } = await import('../context/PriceContext')
+    vi.mocked(usePriceContext).mockReturnValue({
+      prices: mockPrices,
+      pricesLoading: false,
+      pricesError: null,
+      pricesValidating: false,
+      livePrices: new Map(),
+      wsStatus: 'disconnected',
+      refetchPrices: vi.fn(),
+      subscribe: vi.fn(),
+      unsubscribe: vi.fn(),
+    })
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>,
+    )
+    expect(screen.getByPlaceholderText('Search by asset pair...')).toBeInTheDocument()
+  })
+
+  it('filters price cards by search query', async () => {
+    const { usePriceContext } = await import('../context/PriceContext')
+    vi.mocked(usePriceContext).mockReturnValue({
+      prices: mockPrices,
+      pricesLoading: false,
+      pricesError: null,
+      pricesValidating: false,
+      livePrices: new Map(),
+      wsStatus: 'disconnected',
+      refetchPrices: vi.fn(),
+      subscribe: vi.fn(),
+      unsubscribe: vi.fn(),
+    })
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>,
+    )
+
+    const searchInput = screen.getByPlaceholderText('Search by asset pair...')
+    await user.type(searchInput, 'btc')
+
+    expect(screen.getByText('BTC/USD')).toBeInTheDocument()
+    expect(screen.queryByText('ETH/USD')).not.toBeInTheDocument()
+  })
+
+  it('shows no results message when search matches nothing', async () => {
+    const { usePriceContext } = await import('../context/PriceContext')
+    vi.mocked(usePriceContext).mockReturnValue({
+      prices: mockPrices,
+      pricesLoading: false,
+      pricesError: null,
+      pricesValidating: false,
+      livePrices: new Map(),
+      wsStatus: 'disconnected',
+      refetchPrices: vi.fn(),
+      subscribe: vi.fn(),
+      unsubscribe: vi.fn(),
+    })
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>,
+    )
+
+    const searchInput = screen.getByPlaceholderText('Search by asset pair...')
+    await user.type(searchInput, 'zzz')
+
+    expect(screen.queryByText('BTC/USD')).not.toBeInTheDocument()
+    expect(screen.queryByText('ETH/USD')).not.toBeInTheDocument()
+    expect(screen.getByText(/No results for/)).toBeInTheDocument()
+  })
+
+  it('does not show search input while loading', async () => {
+    const { usePriceContext } = await import('../context/PriceContext')
+    vi.mocked(usePriceContext).mockReturnValue({
+      prices: [],
+      pricesLoading: true,
+      pricesError: null,
+      pricesValidating: false,
+      livePrices: new Map(),
+      wsStatus: 'disconnected',
+      refetchPrices: vi.fn(),
+      subscribe: vi.fn(),
+      unsubscribe: vi.fn(),
+    })
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByPlaceholderText('Search by asset pair...')).not.toBeInTheDocument()
+  })
+
   it('shows AlertBadge with active count', async () => {
     const { usePriceContext } = await import('../context/PriceContext')
     vi.mocked(usePriceContext).mockReturnValue({
