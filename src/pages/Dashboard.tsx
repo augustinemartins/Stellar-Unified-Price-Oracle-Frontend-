@@ -1,7 +1,9 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { usePriceContext } from '../context/PriceContext'
 import { useAlerts } from '../hooks/useAlerts'
+import { useColumnCount } from '../hooks/useColumnCount'
 import { PriceCard } from '../components/PriceCard'
 import { PriceCardSkeleton } from '../components/PriceCardSkeleton'
 import { AlertModal } from '../components/AlertModal'
@@ -47,6 +49,14 @@ export function Dashboard() {
     [merged, searchQuery],
   )
 
+  const rowCount = Math.ceil(filtered.length / columns)
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: useCallback(() => document.documentElement, []),
+    estimateSize: useCallback(() => ROW_HEIGHT, []),
+    overscan: 5,
+  })
+
   const handleCardClick = useCallback(
     (pair: string) => navigate(`/price/${encodeURIComponent(pair)}`),
     [navigate],
@@ -71,8 +81,6 @@ export function Dashboard() {
     },
     [addAlert],
   )
-
-  const SKELETON_COUNT = 8
 
   return (
     <div>
@@ -116,18 +124,48 @@ export function Dashboard() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" role="list" aria-label="Price feeds">
-          {filtered.map((p) => (
-            <PriceCard
-              key={p.assetPair}
-              price={p}
-              isLive={livePrices.has(p.assetPair)}
-              isStale={pricesValidating}
-              hasAlert={hasAlertsForPair(p.assetPair)}
-              onClick={() => handleCardClick(p.assetPair)}
-              onAlertClick={(e) => handleAlertClick(e, p.assetPair)}
-            />
-          ))}
+        <div
+          ref={containerRef}
+          style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
+          aria-label="Price feeds"
+        >
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const startIdx = virtualRow.index * columns
+            const rowItems = filtered.slice(startIdx, startIdx + columns)
+            return (
+              <div
+                key={virtualRow.key}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${columns}, 1fr)`,
+                    gap: '1rem',
+                  }}
+                  role="list"
+                >
+                  {rowItems.map((p) => (
+                    <PriceCard
+                      key={p.assetPair}
+                      price={p}
+                      isLive={livePrices.has(p.assetPair)}
+                      isStale={pricesValidating}
+                      hasAlert={hasAlertsForPair(p.assetPair)}
+                      onClick={() => handleCardClick(p.assetPair)}
+                      onAlertClick={(e) => handleAlertClick(e, p.assetPair)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
