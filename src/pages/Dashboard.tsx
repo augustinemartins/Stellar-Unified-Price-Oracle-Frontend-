@@ -1,11 +1,16 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { usePrices } from '../hooks/usePrices'
 import { useWebSocket } from '../hooks/useWebSocket'
+import { useColumnCount } from '../hooks/useColumnCount'
 import { PriceCard } from '../components/PriceCard'
 import { PriceCardSkeleton } from '../components/PriceCardSkeleton'
 import { ConnectionBadge } from '../components/ConnectionBadge'
 import { NetworkStatusBanner } from '../components/NetworkStatusBanner'
+
+const ROW_HEIGHT = 200
+const SKELETON_COUNT = 8
 
 function mergePrices(
   restPrices: { assetPair: string; price: number; timestamp: number; confidence: number; sources: string[] }[],
@@ -25,14 +30,23 @@ export function Dashboard() {
   const { livePrices, status } = useWebSocket(prices.map((p) => p.assetPair))
   const navigate = useNavigate()
 
+  const containerRef = useRef<HTMLDivElement>(null)
+  const columns = useColumnCount(containerRef)
+
   const merged = mergePrices(prices, livePrices)
+  const rowCount = Math.ceil(merged.length / columns)
+
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: useCallback(() => window, []),
+    estimateSize: useCallback(() => ROW_HEIGHT, []),
+    overscan: 5,
+  })
 
   const handleCardClick = useCallback(
     (pair: string) => navigate(`/price/${encodeURIComponent(pair)}`),
     [navigate],
   )
-
-  const SKELETON_COUNT = 8
 
   return (
     <div>
@@ -59,20 +73,48 @@ export function Dashboard() {
             <PriceCardSkeleton key={i} />
           ))}
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" role="list" aria-label="Price feeds">
-          {merged.map((p) => (
-            <PriceCard
-              key={p.assetPair}
-              price={p}
-              isLive={livePrices.has(p.assetPair)}
-              onClick={() => handleCardClick(p.assetPair)}
-            />
-          ))}
+      ) : merged.length > 0 ? (
+        <div
+          ref={containerRef}
+          style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
+          aria-label="Price feeds"
+        >
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const startIdx = virtualRow.index * columns
+            const rowItems = merged.slice(startIdx, startIdx + columns)
+            return (
+              <div
+                key={virtualRow.key}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${columns}, 1fr)`,
+                    gap: '1rem',
+                  }}
+                  role="list"
+                >
+                  {rowItems.map((p) => (
+                    <PriceCard
+                      key={p.assetPair}
+                      price={p}
+                      isLive={livePrices.has(p.assetPair)}
+                      onClick={() => handleCardClick(p.assetPair)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
-      )}
-
-      {!loading && merged.length === 0 && (
+      ) : (
         <div className="text-center py-32 text-gray-500">
           <p className="text-lg mb-2">No price feeds available</p>
           <p className="text-sm">Connect to the aggregator API to see price data.</p>
